@@ -1,6 +1,9 @@
 FROM ubuntu:14.04
 MAINTAINER Jan Nonnen <helvalius@gmail.com>
 
+ENV http_proxy http://proxy:8080
+ENV https_proxy http://proxy:8080
+
 RUN apt-get update
 
 # Install basic software
@@ -42,7 +45,7 @@ RUN apt-get -y install libprotobuf-c0-dev protobuf-c-compiler
 RUN apt-get install -y sudo
 
 #
-
+RUN pear config-set http_proxy http://proxy:8080
 RUN pear install DB
 RUN useradd -m -p password1234 nominatim
 RUN mkdir -p /app/nominatim
@@ -54,20 +57,23 @@ RUN ./configure
 RUN make
 
 # Configure postgresql
-RUN service postgresql start && \
+RUN service postgresql start && sleep 10 && \
   pg_dropcluster --stop 9.3 main
 RUN service postgresql start && \
   pg_createcluster --start -e UTF-8 9.3 main
 
-RUN service postgresql start && \
+RUN service postgresql start && sleep 10 && \
   sudo -u postgres psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='nominatim'" | grep -q 1 || sudo -u postgres createuser -s nominatim && \
   sudo -u postgres psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='www-data'" | grep -q 1 || sudo -u postgres createuser -SDR www-data && \
   sudo -u postgres psql postgres -c "DROP DATABASE IF EXISTS nominatim"
 
-RUN wget --output-document=/app/data.pbf http://download.geofabrik.de/europe/monaco-latest.osm.pbf
+# RUN wget --output-document=/app/data.pbf http://download.geofabrik.de/europe/monaco-latest.osm.pbf
 # RUN wget --output-document=/app/data.pbf http://download.geofabrik.de/europe/luxembourg-latest.osm.pbf
 # RUN wget --output-document=/app/data.pbf http://download.geofabrik.de/north-america-latest.osm.pbf
 # RUN wget --output-document=/app/data.pbf http://download.geofabrik.de/north-america/us/delaware-latest.osm.pbf
+# RUN wget --output-document=/app/data.pbf http://download.geofabrik.de/europe-latest.osm.pbf
+RUN wget --output-document=/app/data.pbf http://download.geofabrik.de/europe/netherlands-latest.osm.pbf
+
 
 WORKDIR /app/nominatim
 
